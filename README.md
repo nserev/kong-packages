@@ -8,6 +8,7 @@ rpm -ivh https://kong-packages.s3.amazonaws.com/amzn/noarch/kong-repo-1-0.1.noar
 On Debian based systems:
 
 echo "deb http://kong-packages.s3.amazonaws.com/ trusty main" >> /etc/apt/sources.list
+
 and then run 
 
 apt-get update
