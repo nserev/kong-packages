@@ -4,9 +4,6 @@ export LUA_VERSION=5.1.5
 export LUAROCKS_VERSION=2.2.1
 export OPENRESTY_VERSION=1.7.10.1
 export KONG_VERSION=0.1.1beta-2
-export AWS_ACCESS_KEY_ID=AKIAIFGHGLGEDBBR35CQ
-export AWS_SECRET_ACCESS_KEY=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
-export AWS_BUCKET="demo123-s3-deb-repo"
 
 if [[ -z $AWS_ACCESS_KEY_ID && -z $AWS_SECRET_ACCESS_KEY && -z $AWS_BUCKET ]] ; then
     echo "Please set variables"
