@@ -14,9 +14,10 @@ if [[ -z $AWS_ACCESS_KEY_ID && -z $AWS_SECRET_ACCESS_KEY && -z $AWS_BUCKET ]] ; 
 fi
 
 rm -f /mnt/kong*
-apt-get update && apt-get -y install docker.io ruby ruby-dev  zlib1g-dev s3cmd
+apt-get update && apt-get -y install docker.io ruby ruby-dev  zlib1g-dev python-pip
 apt-get -y install wget tar make gcc g++ libreadline-dev libncurses5-dev libpcre3-dev libssl-dev perl unzip git ruby-dev rpm
 gem install deb-s3
+pip install s3cmd
 ln -sf /usr/bin/docker.io /usr/local/bin/docker
 sed -i '$acomplete -F _docker docker' /etc/bash_completion.d/docker.io
 update-rc.d docker.io defaults
@@ -27,11 +28,10 @@ mkdir -p /root/kong_builder
 FILE=/root/kong_builder/Dockerfile
 
 /bin/cat <<EOM >${FILE}
-#Set the base image to use to Ubuntu
-FROM ubuntu
+#Base image
+FROM ubuntu:14.04.2
 
-# Set the file maintainer (your name - the file's author)
-MAINTAINER nicks
+MAINTAINER n.serev@gmail.com
 ADD /build_setup.sh /root/
 ADD /list_files /root/
 EOM
@@ -87,13 +87,20 @@ mkdir -p /etc/kong
 cp /usr/local/lib/luarocks/rocks/kong/$KONG_VERSION/conf/kong.yml /etc/kong/kong.yml
 
 cd /root
-fpm -s dir -t deb -n kong -v 0.1.2beta-2 --inputs /root/list_files
-fpm -s dir -t rpm -n kong -v 0.1.2beta-2 --inputs /root/list_files
+fpm -s dir -t deb -n kong -v ${KONG_VERSION} --inputs /root/list_files
+fpm -s dir -t rpm -n kong -v ${KONG_VERSION} --inputs /root/list_files
 cp kong* /mnt
 EOF
 
 chmod +x  ~/kong_builder/build_setup.sh
 cd ~/kong_builder
+#Start the rpm and deb package build
 docker build --no-cache -t kong_builder --force-rm .
 docker run -t -i -v /mnt:/mnt kong_builder /root/build_setup.sh
+#Updating deb repo
 deb-s3 upload -c `lsb_release -sc` --bucket ${AWS_BUCKET} /mnt/kong*.deb
+#Updating yum repo
+mkdir -pv ~/kong-repo/amzn/{x86_64,noarch}/
+cp /mnt/kong*rpm ~/kong-repo/amzn/noarch/
+for a in ~/kong-repo/amzn{/x86_64,/noarch} ; do createrepo -v --update --deltas $a/ ; done
+s3cmd -P sync --access_key=${AWS_ACCESS_KEY_ID} --secret_key=${AWS_SECRET_ACCESS_KEY} ~/kong-repo/amzn/ s3://kong-packages/amzn/ --delete-removed
