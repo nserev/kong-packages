@@ -4,6 +4,7 @@ export LUA_VERSION=5.1.5
 export LUAROCKS_VERSION=2.2.1
 export OPENRESTY_VERSION=1.7.10.1
 export KONG_VERSION=0.1.1beta-2
+export FPM_OPTIONS="--vendor Mashape --license MIT --url http://getkong.org --description 'Kong is an open distributed platform for your APIs, focused on high performance and reliability.' -m 'support@mashape.com'"
 
 if [[ -z $AWS_ACCESS_KEY_ID && -z $AWS_SECRET_ACCESS_KEY && -z $AWS_BUCKET ]] ; then
     echo "Please set variables"
@@ -14,7 +15,7 @@ if [[ -z $AWS_ACCESS_KEY_ID && -z $AWS_SECRET_ACCESS_KEY && -z $AWS_BUCKET ]] ; 
 fi
 
 rm -f /mnt/kong*
-apt-get update && apt-get -y install docker.io ruby ruby-dev  zlib1g-dev python-pip
+apt-get update && apt-get -y install docker.io ruby ruby-dev  zlib1g-dev python-pip createrepo
 apt-get -y install wget tar make gcc g++ libreadline-dev libncurses5-dev libpcre3-dev libssl-dev perl unzip git ruby-dev rpm
 gem install deb-s3
 pip install s3cmd
@@ -87,8 +88,8 @@ mkdir -p /etc/kong
 cp /usr/local/lib/luarocks/rocks/kong/$KONG_VERSION/conf/kong.yml /etc/kong/kong.yml
 
 cd /root
-fpm -s dir -t deb -n kong -v ${KONG_VERSION} --inputs /root/list_files
-fpm -s dir -t rpm -n kong -v ${KONG_VERSION} --inputs /root/list_files
+fpm -s dir -t deb -n kong -v ${KONG_VERSION} --inputs /root/list_files ${FPM_OPTIONS}
+fpm -s dir -t rpm -n kong -v ${KONG_VERSION} --inputs /root/list_files ${FPM_OPTIONS}
 cp kong* /mnt
 EOF
 
@@ -101,6 +102,7 @@ docker run -t -i -v /mnt:/mnt kong_builder /root/build_setup.sh
 deb-s3 upload -c `lsb_release -sc` --bucket ${AWS_BUCKET} /mnt/kong*.deb
 #Updating yum repo
 mkdir -pv ~/kong-repo/amzn/{x86_64,noarch}/
+wget https://kong-packages.s3.amazonaws.com/amzn/noarch/kong-repo-1-0.1.noarch.rpm -P kong-repo/amzn/noarch/
 cp /mnt/kong*rpm ~/kong-repo/amzn/noarch/
 for a in ~/kong-repo/amzn{/x86_64,/noarch} ; do createrepo -v --update --deltas $a/ ; done
 s3cmd -P sync --access_key=${AWS_ACCESS_KEY_ID} --secret_key=${AWS_SECRET_ACCESS_KEY} ~/kong-repo/amzn/ s3://kong-packages/amzn/ --delete-removed
