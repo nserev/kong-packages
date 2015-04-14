@@ -19,6 +19,7 @@ enabled=1
 
 gpgcheck=0
 
+##############################################################################################################
 On Debian based systems:
 
 echo "deb http://kong-packages.s3.amazonaws.com/ trusty main" >> /etc/apt/sources.list
