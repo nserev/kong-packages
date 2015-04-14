@@ -10,9 +10,13 @@ yum -y install kong
 To manually add the yum repo, create kong-repo.repo in /etc/yum.repos.d/ and add the following content:
 
 [kong-repo]
-name=name=Extra Packages from Kong RPM Repository - 
+
+name=Extra Packages from Kong RPM Repository
+
 baseurl=https://kong-packages.s3.amazonaws.com/amzn/noarch/
+
 enabled=1
+
 gpgcheck=0
 
 On Debian based systems:
